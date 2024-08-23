@@ -19,6 +19,7 @@ beachfront/ API for enabling website creation
 
 - sandcastle **expects** to find a Caddy config and will fail gracefully if it isn't found
 - this should be run with golfer on the same server
+- when in development, create the Caddy config with golfer and place the generated files within `dist/`
 
 ## Production
 

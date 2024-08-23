@@ -4,7 +4,7 @@
 /// import
 
 import { ensureDir, ensureFile, exists } from "https://deno.land/std/fs/mod.ts";
-import { Hono, validator } from "https://deno.land/x/hono@v4.2.4/mod.ts";
+import { Hono, validator } from "https://deno.land/x/hono@v4.3.11/mod.ts";
 import { load } from "https://deno.land/std/dotenv/mod.ts";
 
 import {
@@ -66,6 +66,7 @@ app.use(trimTrailingSlash());
 app.use(prettyJSON());
 
 app.get("/", context => context.redirect("/api"));
+
 app.get("/api", context => context.json({ message: "Do you wanna build a sandcastle?" }, 200));
 
 app.post("/api",
@@ -152,11 +153,48 @@ app.post("/api",
     ///
 
     console.info(`DONE  | ${domain}\n`);
+    return context.json({ message: `Updated site for ${domain}!` }, 201);
+  }
+);
 
-    return context.json({
-      message: `Updated site for ${domain}!`,
-      success: true
-    }, 201);
+app.post("/api/site",
+  bearerAuth({ token }),
+  validator("json", (value, context) => {
+    const { customer, domain } = value;
+
+    if (!customer || !domain)
+      return context.json({ message: "Missing data!" }, 400);
+
+    if (!regexUUID.test(customer))
+      return context.json({ message: "Invalid customer ID!" }, 400);
+
+    if (!regexDomain.test(domain))
+      return context.json({ message: "Invalid domain!" }, 400);
+
+    return { customer, domain: toASCII(domain) };
+  }),
+  async(context) => {
+    const { customer, domain } = await context.req.json();
+
+    ///
+    /// GET INDEX.HTML
+    ///
+
+    const indexHTML = `${sandcastlesDirectory}/${customer}/${domain}/index.html`;
+    let data = null;
+
+    ///
+    /// FINISH
+    ///
+
+    try {
+      data = await Deno.readTextFile(indexHTML);
+      return context.json({ data }, 200);
+    } catch(_) {
+      return context.json({ data }, 404);
+    }
+
+    console.info(`DONE  | ${domain}\n`);
   }
 );
 
